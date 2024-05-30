@@ -7,7 +7,7 @@ def read_file(path: str):
     return data
 
 # Data to be encrypted (must be a multiple of 8 bytes)
-data = read_file('data/data2.txt')
+data = read_file('data/10mb.pdf')
 
 # Начинаем отсчет времени
 start_time = time.time()

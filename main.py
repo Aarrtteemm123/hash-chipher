@@ -53,7 +53,7 @@ def code(data: bytes, compress=False):
     for hex_ in hex_list:
         for hex_2 in hex_list:
             while True:
-                hash_ = os.urandom(8).hex()    # get 8*2=16 str size
+                hash_ = os.urandom(8).hex()  # get 8*2=16 str size
                 hash_2 = xxhash.xxh3_64_hexdigest(hash_ + hex_2)
                 if hash_2[0] == hex_:
                     hash_table[counter] = hash_
@@ -73,13 +73,14 @@ def code(data: bytes, compress=False):
     tail_min_len = max_min_len if max_min_len > min_min_len else min_min_len
     tail = random.randint(tail_min_len, tail_max_len)
     random_bytes = os.urandom(len_data + tail).hex()
-    secret_list = [hash_table[int(data[i] + random_bytes[i], 16)] for i in range(len_data)]
+    hex_decimal_dict = {'0' + hex(i)[2:] if i < 16 else hex(i)[2:]: i for i in range(256)}
+    secret_list = [hash_table[hex_decimal_dict[data[i] + random_bytes[i]]] for i in range(len_data)]
 
     return secret_list, random_bytes
 
 
-data = read_file('data/1mb.json')
-#data = b'Hello World!'
+data = read_file('data/dummy-500-kb-example-png-file.png')
+# data = b'Hello World!'
 len_data = len(data)
 start_total_time = time.time()
 secret_key, public_key = code(data, False)
@@ -87,16 +88,16 @@ end_total_time = time.time()
 total_time = end_total_time - start_total_time
 data_size_MB = len_data / (1024 * 1024)  # Convert bytes to Megabytes
 throughput = data_size_MB / total_time
-save_keys(secret_key, public_key, False)
-secret_key = read_file('secret_key.key').splitlines()
-public_key = read_file('public_key.key')
-st_decode = time.time()
-msg = decode(secret_key, public_key)
-end_decode = time.time()
-total_time_decode = end_decode - st_decode
-throughput_decode = data_size_MB / (total_time_decode + 0.00000001)
+# save_keys(secret_key, public_key, False)
+# secret_key = read_file('secret_key.key').splitlines()
+# public_key = read_file('public_key.key')
+# st_decode = time.time()
+# msg = decode(secret_key, public_key)
+# end_decode = time.time()
+# total_time_decode = end_decode - st_decode
+# throughput_decode = data_size_MB / (total_time_decode + 0.00000001)
 print(f"Total time code taken: {total_time} seconds")
 print(f"Throughput code: {throughput} MB/s")
-print(f"Total time decode taken: {total_time_decode} seconds")
-print(f"Throughput decode: {throughput_decode} MB/s")
+# print(f"Total time decode taken: {total_time_decode} seconds")
+# print(f"Throughput decode: {throughput_decode} MB/s")
 print(f"File size: {data_size_MB} MB")

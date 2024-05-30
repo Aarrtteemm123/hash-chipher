@@ -9,7 +9,7 @@ def read_file(path: str):
     return data
 
 # Данные, которые мы будем шифровать (предположим, это строка)
-data = read_file('data/data2.txt')
+data = read_file('data/10mb.pdf')
 
 # Начинаем отсчет времени
 start_time = time.time()

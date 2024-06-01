@@ -24,10 +24,10 @@ def benchmark(func, data, info_msg, *args, **kwargs):
     return res
 
 
-data = read_file('data/1mb.json')
+data = read_file('data/dummy-500-kb-example-png-file.png')
 hash_cipher = HashCipherV1()
-#data = b'Hello World!'
-secret_key, public_key = benchmark(hash_cipher.code, data, 'code', data)
+# data = b'Hello World!'
+secret_key, public_key = benchmark(hash_cipher.code, data, 'code v1', data)
 hash_cipher.save_keys(secret_key, public_key)
 secret_key, public_key = hash_cipher.load_keys('secret_key_v1.key', 'public_key_v1.key').values()
-msg = benchmark(hash_cipher.decode, secret_key, 'decode', secret_key, public_key)
+msg = benchmark(hash_cipher.decode, secret_key, 'decode v1', secret_key, public_key)

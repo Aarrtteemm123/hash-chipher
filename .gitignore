@@ -1,6 +1,4 @@
 /data/
-public_key.key
-secret_key.key
 
 /.idea/.gitignore
 /.idea/hash-cipher.iml
@@ -9,3 +7,5 @@ secret_key.key
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/vcs.xml
+/public_key_v1.key
+/secret_key_v1.key

@@ -6,7 +6,7 @@ import xxhash
 
 
 class HashCipherV1:
-    def code(self, data: bytes, compress: bool = False) -> Tuple[List[str], str]:
+    def code(self, data: bytes, compress: bool = False, random_bytes: bytes = None) -> Tuple[List[str], str]:
         hex_list = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
         hash_table = [None] * 256
         counter = 0
@@ -26,14 +26,19 @@ class HashCipherV1:
 
         data = data.hex()
         len_data = len(data)
-        max_hight_val = int(len_data * 2)
-        min_hight_val = 1000
-        max_min_len = int(len_data * 0.1)
-        min_min_len = 100
-        tail_max_len = max_hight_val if max_hight_val > min_hight_val else min_hight_val
-        tail_min_len = max_min_len if max_min_len > min_min_len else min_min_len
-        tail = random.randint(tail_min_len, tail_max_len)
-        random_bytes = os.urandom(len_data + tail).hex()
+        random_bytes = random_bytes.hex() if random_bytes else None
+        if random_bytes and len(random_bytes) < len_data:
+            raise Exception('Array of random bytes is shorter than the original data')
+
+        if not random_bytes:
+            max_hight_val = int(len_data * 2)
+            min_hight_val = 1000
+            max_min_len = int(len_data * 0.1)
+            min_min_len = 100
+            tail_max_len = max_hight_val if max_hight_val > min_hight_val else min_hight_val
+            tail_min_len = max_min_len if max_min_len > min_min_len else min_min_len
+            tail = random.randint(tail_min_len, tail_max_len)
+            random_bytes = os.urandom(len_data + tail).hex()
         hex_decimal_dict = {'0' + hex(i)[2:] if i < 16 else hex(i)[2:]: i for i in range(256)}
         secret_list = [hash_table[hex_decimal_dict[data[i] + random_bytes[i]]] for i in range(len_data)]
         return secret_list, random_bytes

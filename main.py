@@ -1,5 +1,7 @@
 import time
 
+from aes import AESCipher
+from des import DESCipher
 from hash_cipher_v1 import HashCipherV1
 
 
@@ -24,10 +26,19 @@ def benchmark(func, data, info_msg, *args, **kwargs):
     return res
 
 
-data = read_file('data/dummy-500-kb-example-png-file.png')
+#data = read_file('data/dummy-500-kb-example-png-file.png')
+data = b'Hello World' * 100_000
+
 hash_cipher = HashCipherV1()
-#data = b'Hello World'
-secret_key, public_key = benchmark(hash_cipher.code, data, 'code v1', data)
+secret_key, public_key = benchmark(hash_cipher.encrypt, data, 'code v1', data)
 hash_cipher.save_keys(secret_key, public_key)
 secret_key, public_key = hash_cipher.load_keys('secret_key_v1.key', 'public_key_v1.key').values()
-msg = benchmark(hash_cipher.decode, secret_key, 'decode v1', secret_key, public_key)
+msg = benchmark(hash_cipher.decrypt, secret_key, 'decode v1', secret_key, public_key)
+
+aes_cipher = AESCipher()
+cipher_text, key = benchmark(aes_cipher.encrypt, data, 'AES code', data)
+text = benchmark(aes_cipher.decrypt, cipher_text, 'AES decode', cipher_text, key)
+
+des_cipher = DESCipher()
+cipher_text, key = benchmark(des_cipher.encrypt, data, 'DES code', data)
+text = benchmark(des_cipher.decrypt, cipher_text, 'DES decode', cipher_text, key)

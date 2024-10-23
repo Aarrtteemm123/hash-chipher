@@ -6,7 +6,7 @@ import xxhash
 
 
 class HashCipherV1:
-    def code(self, data: bytes, compress: bool = False, random_bytes: bytes = None) -> Tuple[List[str], str]:
+    def encrypt(self, data: bytes, compress: bool = True, random_bytes: bytes = None) -> Tuple[List[str], str]:
         hex_list = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
         hash_table = [None] * 256
         counter = 0
@@ -43,7 +43,7 @@ class HashCipherV1:
         secret_list = [hash_table[hex_decimal_dict[data[i] + random_bytes[i]]] for i in range(len_data)]
         return secret_list, random_bytes
 
-    def decode(self, secret_keys: List[bytes], public_key: bytes) -> bytes:
+    def decrypt(self, secret_keys: List[bytes], public_key: bytes) -> bytes:
         compressed = secret_keys[-1] == b'1'
         secret_keys.pop(-1)
         public_key_str = public_key.decode()

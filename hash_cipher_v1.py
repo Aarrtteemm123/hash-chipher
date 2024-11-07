@@ -6,7 +6,7 @@ import xxhash
 
 
 class HashCipherV1:
-    def encrypt(self, data: bytes, compress: bool = True, random_bytes: bytes = None) -> Tuple[List[str], str]:
+    def encrypt(self, data: bytes, compress: bool = False, random_bytes: bytes = None) -> Tuple[List[str], str]:
         hex_list = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
         hash_table = [None] * 256
         counter = 0

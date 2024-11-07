@@ -29,8 +29,8 @@ def benchmark(func, data, info_msg, *args, **kwargs):
     return res
 
 
-data = read_file('data')
-#data = b'Hello World' * 500_000
+#data = read_file('data')
+data = b'Hello World' * 500_000
 
 hash_cipher = HashCipherV1()
 secret_key, public_key = benchmark(hash_cipher.encrypt, data, 'HashCipher code (compress=False)', data)

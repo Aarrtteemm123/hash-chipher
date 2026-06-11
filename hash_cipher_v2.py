@@ -1,30 +1,50 @@
 import hashlib
+from blake3 import blake3
 from typing import List, Dict
 
 
 class HashCipherV2:
+    HASH_SIZE_BYTES = 64
+
     def __init__(self, secret_seed: bytes):
         self.initial_key = hashlib.sha256(secret_seed).digest()
 
     def encrypt(self, data: bytes) -> List[int]:
         encrypted_salts = []
-        current_key = self.initial_key
+        data_hash = blake3(data).digest(length=self.HASH_SIZE_BYTES)
+        hash_int = int.from_bytes(data_hash, byteorder="big")
+        current_key = self._mix_initial_key(data_hash)
 
         for single_byte in data:
-            salt, current_key = self._encrypt_byte(single_byte, current_key)
+            salt, current_key = self._encrypt_byte(single_byte, current_key, data_hash)
             encrypted_salts.append(salt)
 
+        encrypted_salts.append(hash_int)
         return encrypted_salts
 
     def decrypt(self, salts: List[int]) -> bytes:
-        decrypted_bytes = bytearray()
-        current_key = self.initial_key
+        if not salts:
+            raise ValueError("Ciphertext is empty")
 
-        for salt in salts:
-            single_byte, current_key = self._decrypt_byte(salt, current_key)
+        hash_int = salts[-1]
+        if hash_int < 0:
+            raise ValueError("Invalid ciphertext hash value")
+
+        salts_payload = salts[:-1]
+        data_hash = hash_int.to_bytes(self.HASH_SIZE_BYTES, byteorder="big")
+        decrypted_bytes = bytearray()
+        current_key = self._mix_initial_key(data_hash)
+
+        for salt in salts_payload:
+            single_byte, current_key = self._decrypt_byte(salt, current_key, data_hash)
             decrypted_bytes.append(single_byte)
 
-        return bytes(decrypted_bytes)
+        decrypted_data = bytes(decrypted_bytes)
+        expected_hash = blake3(decrypted_data).digest(length=self.HASH_SIZE_BYTES)
+        if expected_hash != data_hash:
+            raise ValueError("Integrity check failed: message hash mismatch")
+
+        return decrypted_data
 
     def save_keys(
         self,
@@ -43,35 +63,38 @@ class HashCipherV2:
 
         return keys
 
-    def _get_next_key(self, current_key: bytes) -> bytes:
-        return hashlib.sha256(current_key).digest()
+    def _mix_initial_key(self, data_hash: bytes) -> bytes:
+        return hashlib.sha256(self.initial_key + data_hash + b"|init-key|").digest()
 
-    def _encrypt_byte(self, single_byte: int, current_key: bytes) -> tuple[int, bytes]:
-        mask = hashlib.sha256(current_key).digest()
+    def _get_next_key(self, current_key: bytes, data_hash: bytes) -> bytes:
+        return hashlib.sha256(current_key + data_hash + b"|next-key|").digest()
+
+    def _encrypt_byte(self, single_byte: int, current_key: bytes, data_hash: bytes) -> tuple[int, bytes]:
+        mask = hashlib.sha256(current_key + data_hash + b"|mask|").digest()
         mask_byte = mask[0]
         xor_target = single_byte ^ mask_byte
 
         salt = 0
         while True:
             salt_bytes = salt.to_bytes(4, byteorder="big")
-            attempt_hash = hashlib.sha256(current_key + salt_bytes).digest()
+            attempt_hash = hashlib.sha256(current_key + data_hash + salt_bytes + b"|salt|").digest()
             if attempt_hash[0] == xor_target:
                 break
             salt += 1
 
-        next_key = self._get_next_key(current_key)
+        next_key = self._get_next_key(current_key, data_hash)
         return salt, next_key
 
-    def _decrypt_byte(self, salt: int, current_key: bytes) -> tuple[int, bytes]:
-        mask = hashlib.sha256(current_key).digest()
+    def _decrypt_byte(self, salt: int, current_key: bytes, data_hash: bytes) -> tuple[int, bytes]:
+        mask = hashlib.sha256(current_key + data_hash + b"|mask|").digest()
         mask_byte = mask[0]
 
         salt_bytes = salt.to_bytes(4, byteorder="big")
-        attempt_hash = hashlib.sha256(current_key + salt_bytes).digest()
+        attempt_hash = hashlib.sha256(current_key + data_hash + salt_bytes + b"|salt|").digest()
         xor_target = attempt_hash[0]
 
         single_byte = xor_target ^ mask_byte
-        next_key = self._get_next_key(current_key)
+        next_key = self._get_next_key(current_key, data_hash)
         return single_byte, next_key
 
     def _read_file(self, path: str) -> bytes:
@@ -96,11 +119,16 @@ if __name__ == "__main__":
 
     print("Encryption (salt search)...")
     encrypted_salts = cipher.encrypt(message_bytes)
-    for source_byte, salt in zip(message_bytes, encrypted_salts):
+    payload_salts = encrypted_salts[:-1]
+    message_hash = encrypted_salts[-1]
+
+    for source_byte, salt in zip(message_bytes, payload_salts):
         print(f"  Byte {source_byte} encrypted with salt: {salt}")
+    print(f"  BLAKE3-64 integrity hash (as int): {message_hash}")
 
     print(f"\nTransmitted ciphertext (salt array): {encrypted_salts}")
-    print(f"Metadata size: {len(encrypted_salts) * 4} bytes.\n")
+    metadata_size = sum(max(1, (salt.bit_length() + 7) // 8) for salt in encrypted_salts)
+    print(f"Metadata size: {metadata_size} bytes.\n")
 
     print("Decryption (instant hashing)...")
     decrypted_message = cipher.decrypt(encrypted_salts).decode("utf-8")
